@@ -41,6 +41,7 @@ class HAPointConfig(PointConfig):
     starting_value: Any = Field(alias='Starting Value')
     type: str = Field(alias='Type')
 
+
 class HARemoteConfig(RemoteConfig):
     url: AnyHttpUrl
     access_token: str
@@ -55,13 +56,7 @@ class HARemoteConfig(RemoteConfig):
 
 class HomeAssistantRegister(BaseRegister):
 
-    def __init__(self,
-                 read_only,
-                 units,
-                 reg_type,
-                 entity_id,
-                 entity_attribute,
-                 volttron_point_name):
+    def __init__(self, read_only, units, reg_type, entity_id, entity_attribute, volttron_point_name):
         super(HomeAssistantRegister, self).__init__("byte", read_only, volttron_point_name, units, description='')
         self.reg_type = reg_type
         self.entity_id = entity_id
@@ -89,14 +84,12 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
         :param register_definition: PointConfig from which to create a Register instance.
         """
-        register = HomeAssistantRegister(
-            read_only=register_definition.writable is not True,
-            units=register_definition.units,
-            reg_type=register_definition.type,
-            entity_id=register_definition.entity_id,
-            entity_attribute=register_definition.entity_attribute,
-            volttron_point_name=register_definition.volttron_point_name
-        )
+        register = HomeAssistantRegister(read_only=register_definition.writable is not True,
+                                         units=register_definition.units,
+                                         reg_type=register_definition.type,
+                                         entity_id=register_definition.entity_id,
+                                         entity_attribute=register_definition.entity_attribute,
+                                         volttron_point_name=register_definition.volttron_point_name)
         if register_definition.starting_value is not None:
             self.set_default(register_definition.volttron_point_name, register_definition.starting_value)
         return register
@@ -133,7 +126,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
             elif entity_attribute == "brightness":
                 if isinstance(register.value,
-                              int) and 0 <= register.value <= 255:    # Make sure its int and within range
+                              int) and 0 <= register.value <= 255:    # Make sure its int and within range.
                     self.change_brightness(register.entity_id, register.value)
                 else:
                     error_msg = "Brightness value should be an integer between 0 and 255"
@@ -239,10 +232,10 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         register.value = attribute
                         result[register.volttron_point_name] = attribute
                 # handling light states
-                elif "light." in entity_id or "input_boolean." in entity_id:  # Checks for lights or input booleans
+                elif "light." in entity_id or "input_boolean." in entity_id:    # Checks for lights or input booleans
                     if entity_attribute == "state":
                         state = entity_data.get("state", None)
-                        _log.debug(f"Fetched light state for {entity_id}: {state}")  # Log the fetched state
+                        _log.debug(f"Fetched light state for {entity_id}: {state}")    # Log the fetched state
                         # Converting light states to numbers.
                         if state == "on":
                             register.value = 1
@@ -270,7 +263,8 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         register.value = attribute
                         result[register.volttron_point_name] = attribute
             except Exception as e:
-                _log.error(f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}")
+                _log.error(
+                    f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}")
 
         return result, errors
 
