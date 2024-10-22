@@ -1,7 +1,7 @@
 [
     {
         "Entity ID": "light.philips_hue_2_huelight_2",
-        "Entity Point": "state",
+        "Entity Attribute": "state",
         "Volttron Point Name": "light_state",
         "Units": "On / Off",
         "Units Details": "on/off",
@@ -12,7 +12,7 @@
     },
     {
         "Entity ID": "light.philips_hue_light_1_huelight",
-        "Entity Point": "brightness",
+        "Entity Attribute": "brightness",
         "Volttron Point Name": "light_brightness",
         "Units": "int",
         "Units Details": "light level",
