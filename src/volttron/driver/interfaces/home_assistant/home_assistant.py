@@ -101,7 +101,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             self.set_default(register_definition.volttron_point_name, register_definition.starting_value)
         return register
 
-    def get_point(self, topic, **kwargs):
+    def get_point(self, topic: str, **kwargs: Any) -> Any:
         register: HomeAssistantRegister = self.get_register_by_name(topic)
 
         entity_data = self.get_entity_data(register.entity_id)
@@ -112,7 +112,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             value = entity_data.get("attributes", {}).get(f"{register.entity_attribute}", 0)
             return value
 
-    def _set_point(self, topic, value):
+    def _set_point(self, topic: str, value: Any) -> Any:
         register: HomeAssistantRegister = self.get_register_by_name(topic)
         if register.read_only:
             raise IOError("Trying to write to a point configured read only: " + topic)
@@ -188,7 +188,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             raise ValueError(error_msg)
         return register.value
 
-    def get_entity_data(self, entity_id):
+    def get_entity_data(self, entity_id: str) -> dict:
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "Content-Type": "application/json",
@@ -274,7 +274,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
         return result, errors
 
-    def turn_off_lights(self, entity_id):
+    def turn_off_lights(self, entity_id: str) -> None:
         url = f"{self.config.url}/api/services/light/turn_off"
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
@@ -285,7 +285,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         }
         self._post_method(url, headers, payload, f"turn off {entity_id}")
 
-    def turn_on_lights(self, entity_id):
+    def turn_on_lights(self, entity_id: str) -> None:
         url = f"{self.config.url}/api/services/light/turn_on"
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
@@ -295,7 +295,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         payload = {"entity_id": f"{entity_id}"}
         self._post_method(url, headers, payload, f"turn on {entity_id}")
 
-    def change_thermostat_mode(self, entity_id, mode):
+    def change_thermostat_mode(self, entity_id: str, mode: str) -> None:
         # Check if entity_id startswith climate.
         if not entity_id.startswith("climate."):
             _log.error(f"{entity_id} is not a valid thermostat entity ID.")
@@ -314,7 +314,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         # Post data
         self._post_method(url, headers, data, f"change mode of {entity_id} to {mode}")
 
-    def set_thermostat_temperature(self, register: HomeAssistantRegister):
+    def set_thermostat_temperature(self, register: HomeAssistantRegister) -> None:
         # Check if the provided entity_id starts with "climate."
         if not register.entity_id.startswith("climate."):
             _log.error(f"{register.entity_id} is not a valid thermostat entity ID.")
@@ -340,7 +340,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             }
         self._post_method(url, headers, data, f"set temperature of {register.entity_id} to {register.value}")
 
-    def change_brightness(self, entity_id, value):
+    def change_brightness(self, entity_id: str, value: int) -> None:
         url = f"{self.config.url}/api/services/light/turn_on"
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
@@ -354,7 +354,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
         self._post_method(url, headers, payload, f"set brightness of {entity_id} to {value}")
 
-    def set_input_boolean(self, entity_id, state):
+    def set_input_boolean(self, entity_id: str, state: str) -> None:
         service = 'turn_on' if state == 'on' else 'turn_off'
         url = f"{self.config.url}/api/services/input_boolean/{service}"
         headers = {
@@ -372,7 +372,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         else:
             print(f"Failed to set {entity_id} to {state}: {response.text}")
 
-    def _post_method(self, url, headers, data, operation_description):
+    def _post_method(self, url: str, headers: dict, data: dict, operation_description: str) -> None:
         err = None
         try:
             response = requests.post(url, headers=headers, json=data, verify=self.config.verify_option)
