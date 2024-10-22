@@ -24,9 +24,9 @@ Driver Config
 =============
 
 In the driver config file you must enter your Home Assistant IP, access token, and port. Those can be found `here <https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token>`_.
-Also make sure registry_config points to the name of your registry stored in the configuration store. 
+Also make sure registry_config points to the name of your registry stored in the configuration store.
 
-Here is an example configuration file. 
+Here is an example configuration file.
 
 .. code-block:: json
 {
@@ -41,17 +41,17 @@ Here is an example configuration file.
    "timezone": "UTC"
 }
 
-Home Assistant Registry file. 
+Home Assistant Registry file.
 =============
 
-The registry file is a json file. Each JSON object relates to a state or attribute of a single device in Home Assistant. The Entity ID field is the entity we want to get, the entity point is the point that we want (such as state, brightness, or temperature), and the Volttron Point Name is the name that will display within VOLTTRON. This can be the same as the entity point if you use a seperate config and registry for each device. If you want to use one registry and one config for your entire setup, then you will need to create unique VOLTTRON point names. For example, if you have two lights that pull brightness, you might do something like brightness1 amd brightness2.
+The registry file is a json file. Each JSON object relates to a state or attribute of a single device in Home Assistant. The Entity ID field is the entity we want to get, the Entity Attribute is the point that we want (such as state, brightness, or temperature), and the Volttron Point Name is the name that will display within VOLTTRON. This can be the same as the Entity Attribute if you use a seperate config and registry for each device. If you want to use one registry and one config for your entire setup, then you will need to create unique VOLTTRON point names. For example, if you have two lights that pull brightness, you might do something like brightness1 amd brightness2.
 
 .. code-block:: json
 
    [
        {
            "Entity ID": "light.example",
-           "Entity Point": "state",
+           "Entity Attribute": "state",
            "Volttron Point Name": "light_state",
            "Units": "On / Off",
            "Units Details": "on/off",
@@ -62,7 +62,7 @@ The registry file is a json file. Each JSON object relates to a state or attribu
        },
        {
            "Entity ID": "light.example",
-           "Entity Point": "brightness",
+           "Entity Attribute": "brightness",
            "Volttron Point Name": "light_brightness",
            "Units": "int",
            "Units Details": "light level",
@@ -144,7 +144,7 @@ The registry file is a json file. Each JSON object relates to a state or attribu
     [
         {
             "Entity ID": "light.example",
-            "Entity Point": "state",
+            "Entity Attribute": "state",
             "Volttron Point Name": "light_state",
             "Units": "On / Off",
             "Units Details": "on/off",
@@ -155,7 +155,7 @@ The registry file is a json file. Each JSON object relates to a state or attribu
         },
         {
             "Entity ID": "light.example",
-            "Entity Point": "brightness",
+            "Entity Attribute": "brightness",
             "Volttron Point Name": "light_brightness",
             "Units": "int",
             "Units Details": "light level",
@@ -186,7 +186,7 @@ The registry file is a json file. Each JSON object relates to a state or attribu
 
     Registry files can contain one single device and its attributes or a logical group of devices and its attributes. Each entry should include the full entity id of the device, including but not limited to home assistant provided prefix such as "light.",  "climate." etc. The driver uses these prefixes to convert states into integers. Like mentioned before, the driver can only control lights and thermostats but can get data from all devices controlled by home assistant.
 
-    Each entry in a registry file should also have a 'Entity Point' and a unique value for 'Volttron Point Name'. The 'Entity ID' maps to the device instance, the 'Entity Point' extracts the attribute or state, and 'Volttron Point Name' determines the name of that point as it appears in VOLTTRON.
+    Each entry in a registry file should also have a 'Entity Attribute' and a unique value for 'Volttron Point Name'. The 'Entity ID' maps to the device instance, the 'Entity Attribute' extracts the attribute or state, and 'Volttron Point Name' determines the name of that point as it appears in VOLTTRON.
 
     Attributes can be located in the developer tools in the Home Assistant GUI.
 
@@ -206,7 +206,7 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
    [
       {
           "Entity ID": "climate.my_thermostat",
-          "Entity Point": "state",
+          "Entity Attribute": "state",
           "Volttron Point Name": "thermostat_state",
           "Units": "Enumeration",
           "Units Details": "0: Off, 2: heat, 3: Cool, 4: Auto",
@@ -217,7 +217,7 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
       },
       {
           "Entity ID": "climate.my_thermostat",
-          "Entity Point": "current_temperature",
+          "Entity Attribute": "current_temperature",
           "Volttron Point Name": "volttron_current_temperature",
           "Units": "F",
           "Units Details": "Current Ambient Temperature",
@@ -228,7 +228,7 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
       },
       {
           "Entity ID": "climate.my_thermostat",
-          "Entity Point": "temperature",
+          "Entity Attribute": "temperature",
           "Volttron Point Name": "set_temperature",
           "Units": "F",
           "Units Details": "Desired Temperature",
