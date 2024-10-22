@@ -38,7 +38,6 @@ type_mapping = {"string": str, "int": int, "integer": int, "float": float, "bool
 class HAPointConfig(PointConfig):
     entity_id: str = Field(alias='Entity ID')
     entity_attribute: str = Field(default='state', alias='Entity Point')
-    # point_name: str = Field(alias='Volttron Point Name')
     starting_value: Any = Field(alias='Starting Value')
     type: str = Field(alias='Type')
 
