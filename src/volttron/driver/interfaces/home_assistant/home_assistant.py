@@ -26,7 +26,7 @@ import logging
 import requests
 
 from pydantic import AnyHttpUrl, computed_field, Field, FilePath
-from typing import Iterable
+from typing import Iterable, Any
 
 from volttron.driver.base.config import PointConfig, RemoteConfig
 from volttron.driver.base.interfaces import BaseInterface, BaseRegister, BasicRevert
@@ -38,7 +38,8 @@ type_mapping = {"string": str, "int": int, "integer": int, "float": float, "bool
 class HAPointConfig(PointConfig):
     entity_id: str = Field(alias='Entity ID')
     entity_point: str = Field(default='state', alias='Entity Point')
-    starting_value: any = Field(alias='Starting Value')
+    point_name: str = Field(alias='Volttron Point Name')
+    starting_value: Any = Field(alias='Starting Value')
     type: str = Field(alias='Type')
 
 class HARemoteConfig(RemoteConfig):
@@ -93,7 +94,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             units=register_definition.units,
             reg_type=register_definition.type,
             entity_id=register_definition.entity_id,
-            entity_point=register_definition.enitity_point
+            entity_point=register_definition.entity_point
         )
         if register_definition.starting_value is not None:
             self.set_default(register_definition.point_name, register_definition.starting_value)
