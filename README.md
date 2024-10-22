@@ -30,17 +30,25 @@ Before installing, VOLTTRON should be installed and running.  Its virtual enviro
 Information on how to install of the VOLTTRON platform can be found
 [here](https://github.com/eclipse-volttron/volttron-core).
 
-Install the volttron platform driver:
+If not already installed, Install the volttron platform driver:
 
 ```shell
 vctl install volttron-platform-driver --vip-identity platform.driver --start
 ```
 
-Install the volttron home assistant library.
+Install the volttron home assistant library with 1 of two methods. 
 
-```shell
-pip install volttron-lib-home-assistant-driver
-```
+
+
+1. Install using vctl. If this does not work, then proceed to the second method for local installation.
+   ```shell 
+   vctl install volttron-lib-home-assistant-driver
+   ```
+
+2. Clone the Home Assistant repo then install using poetry. 
+   ```shell
+   poetry add --directory $VOLTTRON_HOME /path/to/homeassistant/repo
+   ```
 
 Using the Home Assistant driver requires adding copies of the device configuration and registry configuration files to the Platform Driver’s configuration store.
 
@@ -83,7 +91,7 @@ Create a file named `light.example.json` and enter your information. (*like the 
 [
    {
        "Entity ID": "light.example",
-       "Entity Point": "state",
+       "Entity Attribute": "state",
        "Volttron Point Name": "light_state",
        "Units": "On / Off",
        "Units Details": "on/off",
@@ -94,7 +102,7 @@ Create a file named `light.example.json` and enter your information. (*like the 
    },
    {
        "Entity ID": "light.example",
-       "Entity Point": "brightness",
+       "Entity Attribute": "brightness",
        "Volttron Point Name": "light_brightness",
        "Units": "int",
        "Units Details": "light level",
@@ -121,7 +129,7 @@ vctl status
 
 Registry files can contain one single device and its attributes or a logical group of devices and its attributes. Each entry should include the full entity id of the device, including but not limited to home assistant provided prefix such as "light.",  "climate." etc. The driver uses these prefixes to convert states into integers. Like mentioned before, the driver can only control lights and thermostats but can get data from all devices controlled by home assistant.
 
-Each entry in a registry file should also have a 'Entity Point' and a unique value for 'Volttron Point Name'. The 'Entity ID' maps to the device instance, the 'Entity Point' extracts the attribute or state, and 'Volttron Point Name' determines the name of that point as it appears in VOLTTRON.
+Each entry in a registry file should also have a 'Entity Attribute' and a unique value for 'Volttron Point Name'. The 'Entity ID' maps to the device instance, the 'Entity Attribute' extracts the attribute or state, and 'Volttron Point Name' determines the name of that point as it appears in VOLTTRON.
 
 >**Note:**
 Attributes can be located in the developer tools in the Home Assistant GUI.
@@ -136,7 +144,7 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
 [
    {
        "Entity ID": "climate.my_thermostat",
-       "Entity Point": "state",
+       "Entity Attribute": "state",
        "Volttron Point Name": "thermostat_state",
        "Units": "Enumeration",
        "Units Details": "0: Off, 2: heat, 3: Cool, 4: Auto",
@@ -147,7 +155,7 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
    },
    {
        "Entity ID": "climate.my_thermostat",
-       "Entity Point": "current_temperature",
+       "Entity Attribute": "current_temperature",
        "Volttron Point Name": "volttron_current_temperature",
        "Units": "F",
        "Units Details": "Current Ambient Temperature",
@@ -158,7 +166,7 @@ For thermostats, the state is converted into numbers as follows: "0: Off, 2: hea
    },
    {
        "Entity ID": "climate.my_thermostat",
-       "Entity Point": "temperature",
+       "Entity Attribute": "temperature",
        "Volttron Point Name": "set_temperature",
        "Units": "F",
        "Units Details": "Desired Temperature",
