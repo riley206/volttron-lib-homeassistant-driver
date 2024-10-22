@@ -37,7 +37,7 @@ type_mapping = {"string": str, "int": int, "integer": int, "float": float, "bool
 
 class HAPointConfig(PointConfig):
     entity_id: str = Field(alias='Entity ID')
-    entity_point: str = Field(default='state', alias='Entity Point')
+    entity_attribute: str = Field(default='state', alias='Entity Point')
     point_name: str = Field(alias='Volttron Point Name')
     starting_value: Any = Field(alias='Starting Value')
     type: str = Field(alias='Type')
@@ -62,12 +62,12 @@ class HomeAssistantRegister(BaseRegister):
                  units,
                  reg_type,
                  entity_id,
-                 entity_point):
+                 entity_attribute):
         super(HomeAssistantRegister, self).__init__("byte", read_only, point_name, units, description='')
         self.reg_type = reg_type
         self.entity_id = entity_id
         self.value = None
-        self.entity_point = entity_point
+        self.entity_attribute = entity_attribute
 
 
 class HomeAssistantInterface(BasicRevert, BaseInterface):
@@ -95,7 +95,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             units=register_definition.units,
             reg_type=register_definition.type,
             entity_id=register_definition.entity_id,
-            entity_point=register_definition.entity_point
+            entity_attribute=register_definition.entity_attribute
         )
         if register_definition.starting_value is not None:
             self.set_default(register_definition.point_name, register_definition.starting_value)
@@ -117,10 +117,10 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         if register.read_only:
             raise IOError("Trying to write to a point configured read only: " + topic)
         register.value = register.reg_type(value)    # setting the value
-        entity_point = register.entity_point
+        entity_attribute = register.entity_attribute
         # Changing lights values in home assistant based off of register value.
         if "light." in register.entity_id:
-            if entity_point == "state":
+            if entity_attribute == "state":
                 if isinstance(register.value, int) and register.value in [0, 1]:
                     if register.value == 1:
                         self.turn_on_lights(register.entity_id)
@@ -131,7 +131,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                     _log.info(error_msg)
                     raise ValueError(error_msg)
 
-            elif entity_point == "brightness":
+            elif entity_attribute == "brightness":
                 if isinstance(register.value,
                               int) and 0 <= register.value <= 255:    # Make sure its int and within range
                     self.change_brightness(register.entity_id, register.value)
@@ -145,7 +145,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                 raise ValueError(error_msg)
 
         elif "input_boolean." in register.entity_id:
-            if entity_point == "state":
+            if entity_attribute == "state":
                 if isinstance(register.value, int) and register.value in [0, 1]:
                     if register.value == 1:
                         self.set_input_boolean(register.entity_id, "on")
@@ -160,7 +160,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
         # Changing thermostat values.
         elif "climate." in register.entity_id:
-            if entity_point == "state":
+            if entity_attribute == "state":
                 if isinstance(register.value, int) and register.value in [0, 2, 3, 4]:
                     if register.value == 0:
                         self.change_thermostat_mode(entity_id=register.entity_id, mode="off")
@@ -174,7 +174,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                     error_msg = f"Climate state should be an integer value of 0, 2, 3, or 4"
                     _log.error(error_msg)
                     raise ValueError(error_msg)
-            elif entity_point == "temperature":
+            elif entity_attribute == "temperature":
                 self.set_thermostat_temperature(register)
 
             else:
@@ -188,18 +188,18 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             raise ValueError(error_msg)
         return register.value
 
-    def get_entity_data(self, point_name):
+    def get_entity_data(self, entity_id):
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "Content-Type": "application/json",
         }
         # the /states grabs current state AND attributes of a specific entity
-        url = f"{self.config.url}/api/states/{point_name}"
+        url = f"{self.config.url}/api/states/{entity_id}"
         response = requests.get(url, headers=headers, verify=self.config.verify_option)
         if response.status_code == 200:
             return response.json()    # return the json attributes from entity
         else:
-            error_msg = f"Request failed with status code {response.status_code}, Point name: {point_name}, " \
+            error_msg = f"Request failed with status code {response.status_code}, Point name: {entity_id}, " \
                         f"response: {response.text}"
             _log.error(error_msg)
             raise Exception(error_msg)
@@ -210,11 +210,11 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         for topic in topics:
             register: HomeAssistantRegister = self.get_register_by_name(topic)
             entity_id = register.entity_id
-            entity_point = register.entity_point
+            entity_attribute = register.entity_attribute
             try:
                 entity_data = self.get_entity_data(entity_id)    # Using Entity ID to get data
                 if "climate." in entity_id:    # handling thermostats.
-                    if entity_point == "state":
+                    if entity_attribute == "state":
                         state = entity_data.get("state", None)
                         # Giving thermostat states an equivalent number.
                         if state == "off":
@@ -235,12 +235,12 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                             ValueError(error_msg)
                     # Assigning attributes
                     else:
-                        attribute = entity_data.get("attributes", {}).get(f"{entity_point}", 0)
+                        attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
                         result[register.point_name] = attribute
                 # handling light states
                 elif "light." in entity_id or "input_boolean." in entity_id:  # Checks for lights or input booleans
-                    if entity_point == "state":
+                    if entity_attribute == "state":
                         state = entity_data.get("state", None)
                         _log.debug(f"Fetched light state for {entity_id}: {state}")  # Log the fetched state
                         # Converting light states to numbers.
@@ -255,18 +255,18 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         else:
                             _log.error(f"Unknown state {state} for {entity_id}")
                     else:
-                        attribute = entity_data.get("attributes", {}).get(f"{entity_point}", 0)
+                        attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
                         result[register.point_name] = attribute
                 else:    # handling all devices that are not thermostats or light states
-                    if entity_point == "state":
+                    if entity_attribute == "state":
 
                         state = entity_data.get("state", None)
                         register.value = state
                         result[register.point_name] = state
                     # Assigning attributes
                     else:
-                        attribute = entity_data.get("attributes", {}).get(f"{entity_point}", 0)
+                        attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
                         result[register.point_name] = attribute
             except Exception as e:
