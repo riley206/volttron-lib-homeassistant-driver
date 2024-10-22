@@ -38,7 +38,7 @@ type_mapping = {"string": str, "int": int, "integer": int, "float": float, "bool
 class HAPointConfig(PointConfig):
     entity_id: str = Field(alias='Entity ID')
     entity_attribute: str = Field(default='state', alias='Entity Point')
-    point_name: str = Field(alias='Volttron Point Name')
+    # point_name: str = Field(alias='Volttron Point Name')
     starting_value: Any = Field(alias='Starting Value')
     type: str = Field(alias='Type')
 
@@ -58,16 +58,17 @@ class HomeAssistantRegister(BaseRegister):
 
     def __init__(self,
                  read_only,
-                 point_name,
                  units,
                  reg_type,
                  entity_id,
-                 entity_attribute):
-        super(HomeAssistantRegister, self).__init__("byte", read_only, point_name, units, description='')
+                 entity_attribute,
+                 volttron_point_name):
+        super(HomeAssistantRegister, self).__init__("byte", read_only, volttron_point_name, units, description='')
         self.reg_type = reg_type
         self.entity_id = entity_id
         self.value = None
         self.entity_attribute = entity_attribute
+        self.volttron_point_name = volttron_point_name
 
 
 class HomeAssistantInterface(BasicRevert, BaseInterface):
@@ -91,25 +92,25 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         """
         register = HomeAssistantRegister(
             read_only=register_definition.writable is not True,
-            point_name=register_definition.point_name,
             units=register_definition.units,
             reg_type=register_definition.type,
             entity_id=register_definition.entity_id,
-            entity_attribute=register_definition.entity_attribute
+            entity_attribute=register_definition.entity_attribute,
+            volttron_point_name=register_definition.volttron_point_name
         )
         if register_definition.starting_value is not None:
-            self.set_default(register_definition.point_name, register_definition.starting_value)
+            self.set_default(register_definition.volttron_point_name, register_definition.starting_value)
         return register
 
     def get_point(self, topic, **kwargs):
         register: HomeAssistantRegister = self.get_register_by_name(topic)
 
         entity_data = self.get_entity_data(register.entity_id)
-        if register.point_name == "state":
+        if register.entity_attribute == "state":
             result = entity_data.get("state", None)
             return result
         else:
-            value = entity_data.get("attributes", {}).get(f"{register.point_name}", 0)
+            value = entity_data.get("attributes", {}).get(f"{register.entity_attribute}", 0)
             return value
 
     def _set_point(self, topic, value):
@@ -219,16 +220,16 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         # Giving thermostat states an equivalent number.
                         if state == "off":
                             register.value = 0
-                            result[register.point_name] = 0
+                            result[register.volttron_point_name] = 0
                         elif state == "heat":
                             register.value = 2
-                            result[register.point_name] = 2
+                            result[register.volttron_point_name] = 2
                         elif state == "cool":
                             register.value = 3
-                            result[register.point_name] = 3
+                            result[register.volttron_point_name] = 3
                         elif state == "auto":
                             register.value = 4
-                            result[register.point_name] = 4
+                            result[register.volttron_point_name] = 4
                         else:
                             error_msg = f"State {state} from {entity_id} is not yet supported"
                             _log.error(error_msg)
@@ -237,7 +238,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
-                        result[register.point_name] = attribute
+                        result[register.volttron_point_name] = attribute
                 # handling light states
                 elif "light." in entity_id or "input_boolean." in entity_id:  # Checks for lights or input booleans
                     if entity_attribute == "state":
@@ -246,29 +247,29 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         # Converting light states to numbers.
                         if state == "on":
                             register.value = 1
-                            result[register.point_name] = 1
+                            result[register.volttron_point_name] = 1
                             _log.debug(f"Set light state to 1 (on) for {entity_id}")
                         elif state == "off":
                             register.value = 0
-                            result[register.point_name] = 0
+                            result[register.volttron_point_name] = 0
                             _log.debug(f"Set light state to 0 (off) for {entity_id}")
                         else:
                             _log.error(f"Unknown state {state} for {entity_id}")
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
-                        result[register.point_name] = attribute
+                        result[register.volttron_point_name] = attribute
                 else:    # handling all devices that are not thermostats or light states
                     if entity_attribute == "state":
 
                         state = entity_data.get("state", None)
                         register.value = state
-                        result[register.point_name] = state
+                        result[register.volttron_point_name] = state
                     # Assigning attributes
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
-                        result[register.point_name] = attribute
+                        result[register.volttron_point_name] = attribute
             except Exception as e:
                 _log.error(f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}")
 
