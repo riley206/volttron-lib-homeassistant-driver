@@ -81,6 +81,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
         if not self.config.verify_ssl:
             import urllib3
+            _log.debug("SSL verification is disabled; suppressing warnings.")
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     def create_register(self, register_definition: HAPointConfig) -> BaseRegister:
@@ -205,6 +206,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
     def _get_multiple_points(self, topics: Iterable[str], **kwargs) -> (dict, dict):
         result = {}
+        errors = {}
         for topic in topics:
             register: HomeAssistantRegister = self.get_register_by_name(topic)
             entity_id = register.entity_id
@@ -237,16 +239,21 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         register.value = attribute
                         result[register.point_name] = attribute
                 # handling light states
-                elif "light." or "input_boolean." in entity_id:    # Checks for lights or input bools since they have the same states.
+                elif "light." in entity_id or "input_boolean." in entity_id:  # Checks for lights or input booleans
                     if entity_point == "state":
                         state = entity_data.get("state", None)
+                        _log.debug(f"Fetched light state for {entity_id}: {state}")  # Log the fetched state
                         # Converting light states to numbers.
                         if state == "on":
                             register.value = 1
                             result[register.point_name] = 1
+                            _log.debug(f"Set light state to 1 (on) for {entity_id}")
                         elif state == "off":
                             register.value = 0
                             result[register.point_name] = 0
+                            _log.debug(f"Set light state to 0 (off) for {entity_id}")
+                        else:
+                            _log.error(f"Unknown state {state} for {entity_id}")
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_point}", 0)
                         register.value = attribute
@@ -263,9 +270,9 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         register.value = attribute
                         result[register.point_name] = attribute
             except Exception as e:
-                _log.error(f"An unexpected error occurred for entity_id: {entity_id}: {e}")
+                _log.error(f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}")
 
-        return result
+        return result, errors
 
     def turn_off_lights(self, entity_id):
         url = f"{self.config.url}/api/services/light/turn_off"
