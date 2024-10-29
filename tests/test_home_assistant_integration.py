@@ -32,9 +32,9 @@ from volttron.client.known_identities import CONTROL
 # To run these tests, create a helper toggle named volttrontest in your Home Assistant instance.
 # This can be done by going to Settings > Devices & services > Helpers > Create Helper > Toggle
 
-HOMEASSISTANT_URL = "" # Example, http://0.0.0.0:8123
+HOMEASSISTANT_URL = "" # Examples, http://0.0.0.0:8123, https://0.0.0.0:443
 ACCESS_TOKEN = ""
-SSL_CERT_PATH = "" # Optional for self signed cert
+SSL_CERT_PATH = "" # Optional for self signed cert. Make sure you give permissions. chmod 777
 VERIFY_SSL = True
 
 def test_startup_instance(volttron_instance: PlatformWrapper):
@@ -111,11 +111,11 @@ def test_startup_instance(volttron_instance: PlatformWrapper):
 
 
     # Use RPC to turn on the switch, then get_point to make sure it was turned on.
-    ba.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 1).get(timeout=10)
-    result = ba.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=10)
+    ba.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 1).get(timeout=20)
+    result = ba.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=20)
     assert result == "on"
 
     # Use RPC to turn it off, then get_point to make sure its turned off.
-    ba.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 0).get(timeout=10)
-    result = ba.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=10)
+    ba.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 0).get(timeout=20)
+    result = ba.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=20)
     assert result == "off"
