@@ -8,6 +8,11 @@ from volttrontesting.platformwrapper import InstallAgentOptions
 from unittest.mock import MagicMock
 from volttron.client.known_identities import CONTROL
 
+HOMEASSISTANT_URL = "" # Example, http://0.0.0.0:8123
+ACCESS_TOKEN = ""
+SSL_CERT_PATH = "" # Optional for self signed cert
+VERIFY_SSL = True
+
 def test_startup_instance(volttron_instance: PlatformWrapper):
     assert volttron_instance.is_running()
 
@@ -60,10 +65,10 @@ def test_startup_instance(volttron_instance: PlatformWrapper):
     # Store driver-specific configuration
     driver_config = {
         "driver_config": {
-            "url": "",
-            "access_token": "",
-            "verify_ssl": True,
-            "ssl_cert_path": ""
+            "url": HOMEASSISTANT_URL,
+            "access_token": ACCESS_TOKEN,
+            "verify_ssl": VERIFY_SSL,
+            "ssl_cert_path": SSL_CERT_PATH
         },
         "driver_type": "home_assistant",
         "registry_config": "config://homeassistant_test.json",
@@ -87,11 +92,19 @@ def test_startup_instance(volttron_instance: PlatformWrapper):
     listening = vi.build_agent(identity="world")
     agent_identity = listening.vip.rpc.call(CONTROL, 'agent_vip_identity', auuid).get(timeout=10)
     print(f"Agent identity obtained: {agent_identity}")
-    time.sleep(20) # GIVE IT TIME LOL
+    time.sleep(10) # GIVE IT TIME LOL
+
 
     # Fetch data points to confirm the platform driver reads config correctly
+    listening.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 1).get(timeout=10)
+    time.sleep(2)
     result = listening.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=10)
     print("RPC call result:", result)
-    assert result is not None, "Failed to retrieve data points from platform driver."
+    assert result == "on"
 
-    print("Test completed successfully.")
+    # listening.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 0).get(timeout=10)
+    # time.sleep(2)
+    # result = listening.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=10)
+    # assert result == "off", "Failed to retrieve data points from platform driver."
+    #
+    # print("Test completed successfully.")

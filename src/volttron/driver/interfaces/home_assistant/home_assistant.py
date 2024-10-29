@@ -58,7 +58,7 @@ class HomeAssistantRegister(BaseRegister):
 
     def __init__(self, read_only, units, reg_type, entity_id, entity_attribute, volttron_point_name):
         super(HomeAssistantRegister, self).__init__("byte", read_only, volttron_point_name, units, description='')
-        self.reg_type = reg_type
+        self.reg_type = type_mapping.get(reg_type, str)
         self.entity_id = entity_id
         self.value = None
         self.entity_attribute = entity_attribute
@@ -96,22 +96,39 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
     def get_point(self, topic: str, **kwargs: Any) -> Any:
         register: HomeAssistantRegister = self.get_register_by_name(topic)
-
         entity_data = self.get_entity_data(register.entity_id)
+
         if register.entity_attribute == "state":
             result = entity_data.get("state", None)
-            return result
         else:
-            value = entity_data.get("attributes", {}).get(f"{register.entity_attribute}", 0)
-            return value
+            result = entity_data.get("attributes", {}).get(register.entity_attribute, 0)
+
+        # Apply type conversion if reg_type is callable and expected type is not string (for values like "on"/"off")
+        if callable(register.reg_type) and not isinstance(result, str):
+            try:
+                result = register.reg_type(result)
+            except (TypeError, ValueError) as e:
+                _log.error(f"Type conversion error for {topic} with value {result}: {e}")
+                raise
+
+        return result
 
     def _set_point(self, topic: str, value: Any) -> Any:
         register: HomeAssistantRegister = self.get_register_by_name(topic)
         if register.read_only:
             raise IOError("Trying to write to a point configured read only: " + topic)
-        register.value = register.reg_type(value)    # setting the value
+
+        # Safely convert `value` using `reg_type` if it’s callable
+        if callable(register.reg_type):
+            register.value = register.reg_type(value)
+        else:
+            error_msg = f"reg_type for {topic} is not callable; expected a type conversion function."
+            _log.error(error_msg)
+            raise TypeError(error_msg)
+
         entity_attribute = register.entity_attribute
-        # Changing lights values in home assistant based off of register value.
+
+        # Changing light values in Home Assistant based on register value
         if "light." in register.entity_id:
             if entity_attribute == "state":
                 if isinstance(register.value, int) and register.value in [0, 1]:
@@ -125,8 +142,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                     raise ValueError(error_msg)
 
             elif entity_attribute == "brightness":
-                if isinstance(register.value,
-                              int) and 0 <= register.value <= 255:    # Make sure its int and within range.
+                if isinstance(register.value, int) and 0 <= register.value <= 255:  # Ensure it's int and within range
                     self.change_brightness(register.entity_id, register.value)
                 else:
                     error_msg = "Brightness value should be an integer between 0 and 255"
