@@ -21,7 +21,7 @@
 #
 # ===----------------------------------------------------------------------===
 # }}}
-"""Integration tests for volttron-lib-home-assistant-driver"""
+
 import json
 import time
 from pathlib import Path
@@ -29,8 +29,14 @@ from volttrontesting import PlatformWrapper
 from volttrontesting.platformwrapper import InstallAgentOptions
 from volttron.client.known_identities import CONTROL
 
-# To run these tests, create a helper toggle named volttrontest in your Home Assistant instance.
-# This can be done by going to Settings > Devices & services > Helpers > Create Helper > Toggle
+"""
+Integration tests for volttron-lib-home-assistant-driver. These tests
+utilize the platform wrapper, meaning a real and full volttron instance
+is installed and ran.
+
+To run these tests, create a helper toggle named volttrontest in your Home Assistant instance.
+This can be done by going to Settings > Devices & services > Helpers > Create Helper > Toggle
+"""
 
 HOMEASSISTANT_URL = "" # Examples, http://0.0.0.0:8123, https://0.0.0.0:443
 ACCESS_TOKEN = ""
