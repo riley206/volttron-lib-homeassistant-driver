@@ -22,131 +22,62 @@
 # ===----------------------------------------------------------------------===
 # }}}
 """Integration tests for volttron-lib-home-assistant-driver"""
-
 import json
-import gevent
-import pytest
-from volttron.client.known_identities import CONFIGURATION_STORE, PLATFORM_DRIVER
-from volttron.utils import jsonapi
-from volttrontesting.platformwrapper import PlatformWrapper
-from volttrontesting.fixtures.volttron_platform_fixtures import volttron_instance
+import time
+from pathlib import Path
+from volttrontesting import PlatformWrapper
+from volttrontesting.platformwrapper import InstallAgentOptions
+from volttron.client.known_identities import CONTROL
 
 # To run these tests, create a helper toggle named volttrontest in your Home Assistant instance.
 # This can be done by going to Settings > Devices & services > Helpers > Create Helper > Toggle
+
 HOMEASSISTANT_URL = "" # Example, http://0.0.0.0:8123
 ACCESS_TOKEN = ""
 SSL_CERT_PATH = "" # Optional for self signed cert
 VERIFY_SSL = True
 
-
-def test_scrape_all(publish_agent):
-    # add Home Assistant Driver to Platform Driver
-    registry_obj = [{
-        "Entity ID": "input_boolean.volttrontest",
-        "Entity Point": "state",
-        "Volttron Point Name": "bool_state",
-        "Units": "On / Off",
-        "Units Details": "off: 0, on: 1",
-        "Writable": True,
-        "Starting Value": 3,
-        "Type": "int",
-        "Notes": "lights hallway"
-    }]
-    publish_agent.vip.rpc.call(CONFIGURATION_STORE,
-                               "manage_store",
-                               PLATFORM_DRIVER,
-                               "homeassistant_test.json",
-                               json.dumps(registry_obj),
-                               config_type="json")
-
-    driver_config = {
-        "driver_config": {
-            "url": HOMEASSISTANT_URL,
-            "access_token": ACCESS_TOKEN,
-            "verify_ssl": VERIFY_SSL,
-            "ssl_cert_path": SSL_CERT_PATH
-        },
-        "driver_type": "home_assistant",
-        "registry_config": f"config://homeassistant_test.json",
-        "timezone": "US/Pacific",
-        "interval": 30,
-    }
-    publish_agent.vip.rpc.call(CONFIGURATION_STORE,
-                               "manage_store",
-                               PLATFORM_DRIVER,
-                               "devices/home_assistant",
-                               jsonapi.dumps(driver_config),
-                               config_type='json')
-
-    gevent.sleep(10)
-
-    actual_scrape_all_results = publish_agent.vip.rpc.call(PLATFORM_DRIVER, "scrape_all",
-                                                           "home_assistant").get(timeout=10)
-    expected_scrape_all_results = {'bool_state': 0}
-    assert actual_scrape_all_results == expected_scrape_all_results
-
-
-def test_get_point_set_point(publish_agent):
-    actual_boolValue = publish_agent.vip.rpc.call(PLATFORM_DRIVER, "get_point", "home_assistant",
-                                                  "bool_state").get(timeout=10)
-    assert actual_boolValue == 0
-
-    #set_point
-    actual_boolValue = publish_agent.vip.rpc.call(PLATFORM_DRIVER, "set_point", "home_assistant", "bool_state",
-                                                  1).get(timeout=10)
-    assert actual_boolValue == 1
-
-
-@pytest.fixture(scope="module")
-def publish_agent(volttron_instance: PlatformWrapper):
+def test_startup_instance(volttron_instance: PlatformWrapper):
     assert volttron_instance.is_running()
+
+    # For now, we install things locally.
+    agent_pth = "/home/riley/DRIVERWORK/11rc1/volttron-platform-driver"
+    library_path = Path("/home/riley/DRIVERWORK/11rc1/volttron-lib-homeassistant-driver").resolve()
+
     vi = volttron_instance
-    assert vi is not None
-    assert vi.is_running()
 
-    # install platform driver
-    config = {
-        "driver_scrape_interval": 0.05,
-        "publish_breadth_first_all": "false",
-        "publish_depth_first": "false",
-        "publish_breadth_first": "false"
-    }
-    puid = vi.install_agent(agent_dir="volttron-platform-driver",
-                            config_file=config,
-                            start=False,
-                            vip_identity=PLATFORM_DRIVER)
-    assert puid is not None
-    gevent.sleep(1)
-    assert vi.start_agent(puid)
-    assert vi.is_agent_running(puid)
+    # Install the home assistant library using install_library.
+    vi.install_library(library_path)
+    time.sleep(1)
 
-    # create the publish agent
-    publish_agent = volttron_instance.build_agent()
-    assert publish_agent.core.identity
-    gevent.sleep(1)
+    # Install and start the platform driver agent using install_agent
+    auuid = vi.install_agent(agent_dir=agent_pth,
+                             install_options=InstallAgentOptions(start=True, vip_identity="platform.driver"))
+    assert auuid is not None
+    time.sleep(2)
 
-    capabilities = {"edit_config_store": {"identity": PLATFORM_DRIVER}}
-    volttron_instance.add_capabilities(publish_agent.core.publickey, capabilities)
-
-    # Add Home Assistant Driver to Platform Driver
+    # Create registry configuration and store it as a tmp file.
+    config_path = Path("/tmp/registry_config.json")
     registry_obj = [{
         "Entity ID": "input_boolean.volttrontest",
-        "Entity Point": "state",
-        "Volttron Point Name": "bool_state",
+        "Entity Attribute": "state",
+        "Volttron Point Name": "cool",
         "Units": "On / Off",
-        "Units Details": "off: 0, on: 1",
+        "Units Details": "on/off",
         "Writable": True,
-        "Starting Value": 3,
-        "Type": "int",
-        "Notes": "lights hallway"
+        "Starting Value": True,
+        "Type": "boolean",
+        "Notes": "input bool"
     }]
-    publish_agent.vip.rpc.call(CONFIGURATION_STORE,
-                               "manage_store",
-                               PLATFORM_DRIVER,
-                               "homeassistant_test.json",
-                               json.dumps(registry_obj),
-                               config_type="json")
+    with config_path.open("w") as file:
+        json.dump(registry_obj, file)
 
+    # Store the registry file using run_command.
+    vi.run_command(
+        ["vctl", "config", "store", "platform.driver", "homeassistant_test.json", str(config_path), "--json"]
+    )
+
+    # Store driver-specific configuration
     driver_config = {
         "driver_config": {
             "url": HOMEASSISTANT_URL,
@@ -155,20 +86,36 @@ def publish_agent(volttron_instance: PlatformWrapper):
             "ssl_cert_path": SSL_CERT_PATH
         },
         "driver_type": "home_assistant",
-        "registry_config": f"config://homeassistant_test.json",
+        "registry_config": "config://homeassistant_test.json",
         "timezone": "US/Pacific",
         "interval": 30,
     }
-    publish_agent.vip.rpc.call(CONFIGURATION_STORE,
-                               "manage_store",
-                               PLATFORM_DRIVER,
-                               "devices/home_assistant",
-                               jsonapi.dumps(driver_config),
-                               config_type='json')
+    driver_config_path = Path("/tmp/driver_config.config")
+    with driver_config_path.open("w") as file:
+        json.dump(driver_config, file)
 
-    gevent.sleep(10)
+    # Store the driver config using run_command
+    vi.run_command(
+        ["vctl", "config", "store", "platform.driver", "devices/home_assistant", str(driver_config_path), "--json"]
+    )
 
-    yield publish_agent
+    # Verify that both configurations are stored using run_command
+    list_configs = vi.run_command(["vctl", "config", "list", "platform.driver"])
+    print("Final platform.driver config store contents:")
+    print(list_configs)
 
-    volttron_instance.stop_agent(puid)
-    publish_agent.core.stop()
+    # Create a build agent to make rpc calls
+    ba = vi.build_agent(identity="world")
+    agent_identity = ba.vip.rpc.call(CONTROL, 'agent_vip_identity', auuid).get(timeout=10)
+    print(f"Agent identity obtained: {agent_identity}")
+
+
+    # Use RPC to turn on the switch, then get_point to make sure it was turned on.
+    ba.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 1).get(timeout=10)
+    result = ba.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=10)
+    assert result == "on"
+
+    # Use RPC to turn it off, then get_point to make sure its turned off.
+    ba.vip.rpc.call("platform.driver", "set_point", "devices/home_assistant", "cool", 0).get(timeout=10)
+    result = ba.vip.rpc.call("platform.driver", "get_point", "home_assistant", "cool").get(timeout=10)
+    assert result == "off"
