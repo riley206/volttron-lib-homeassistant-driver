@@ -219,7 +219,7 @@ To run tests on the VOLTTRON home assistant driver you need to create a helper i
 
 ```bash
 cd volttron-lib-home-assistant-driver
-poetry install
+poetry install --with dev
 poetry run pytest tests/test_home_assistant.py
 ```
 
