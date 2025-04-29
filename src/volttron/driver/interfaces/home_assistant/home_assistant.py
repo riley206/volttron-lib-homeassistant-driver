@@ -25,8 +25,8 @@
 import logging
 import requests
 
-from pydantic import AnyHttpUrl, computed_field, Field, FilePath
-from typing import Iterable, Any
+from pydantic import AnyHttpUrl, computed_field, Field, FilePath, validator
+from typing import Iterable, Any, Optional
 
 from volttron.driver.base.config import PointConfig, RemoteConfig
 from volttron.driver.base.interfaces import BaseInterface, BaseRegister, BasicRevert
@@ -46,7 +46,53 @@ class HARemoteConfig(RemoteConfig):
     url: AnyHttpUrl
     access_token: str
     verify_ssl: bool = True
-    ssl_cert_path: FilePath | None = None
+    ssl_cert_path: Optional[str] = None
+
+    @validator('url')
+    def validate_url_format(cls, v):
+        """Validate the Home Assistant URL format and structure."""
+        import re
+        from urllib.parse import urlparse
+
+        # Convert to string for validation
+        url_str = str(v)
+
+        # Check for common URL format issues
+        parsed = urlparse(url_str)
+
+        # Check for malformed URL with extra colons
+        if re.search(r'[^:]/+:[0-9]+', url_str):
+            raise ValueError(f"Malformed URL with extra colon: {url_str}. "
+                             f"Format should be http(s)://hostname:port")
+
+        # Check if port is included when it should be
+        if parsed.port is None and ":8123" not in url_str and ":443" not in url_str:
+            _log.warning(f"URL may be missing port: {url_str}. "
+                         f"Home Assistant typically runs on port 8123 (http) or 8443 (https)")
+
+        # Check IP address format
+        if re.match(r'^https?://\d+\.\d+\.\d+\.\d+', url_str):
+            # If we have an IP address, check it's properly formatted
+            if not re.match(r'^https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?(/.*)?$', url_str):
+                raise ValueError(f"Invalid IP address format in URL: {url_str}")
+
+        # Log the sanitized URL we're using
+        _log.info(f"Using Home Assistant URL: {url_str}")
+
+        return v
+
+    @validator('ssl_cert_path')
+    def validate_ssl_cert_path(cls, v, values):
+        # If verify_ssl is False or cert path is None/empty, skip validation
+        if not values.get('verify_ssl', True) or not v:
+            return None
+
+        # Only validate path if verify_ssl is True and path is provided
+        from pathlib import Path
+        path = Path(v)
+        if not path.is_file():
+            raise ValueError(f"Certificate file not found: {v}")
+        return str(path)
 
     @computed_field
     @property
@@ -142,7 +188,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                     raise ValueError(error_msg)
 
             elif entity_attribute == "brightness":
-                if isinstance(register.value, int) and 0 <= register.value <= 255:  # Ensure it's int and within range
+                if isinstance(register.value, int) and 0 <= register.value <= 255:    # Ensure it's int and within range
                     self.change_brightness(register.entity_id, register.value)
                 else:
                     error_msg = "Brightness value should be an integer between 0 and 255"

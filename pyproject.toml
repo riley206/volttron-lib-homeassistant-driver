@@ -2,15 +2,7 @@
 requires = ["poetry-core>=1.2.2"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.scripts]
-volttron-lib-home-assistant-driver = "home_assistant.agent:main"
-
-[tool.isort]
-profile = "black"
-
 [tool.poetry]
-include = ["src/volttron", "config"]
-
 name = "volttron-lib-home-assistant-driver"
 version = "0.1.0"
 description = "A VOLTTRON driver that allows communication between VOLTTRON and Home Assistant"
@@ -20,7 +12,10 @@ readme = "README.md"
 repository = "https://github.com/eclipse-volttron/volttron-topic-watcher"
 homepage = "https://github.com/eclipse-volttron/volttron-topic-watcher"
 keywords = []
-packages = [ { include = "volttron", from = "src" } ]
+include = ["src/volttron", "config"]
+packages = [
+    { include = "volttron", from = "src" }
+]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Intended Audience :: Science/Research",
@@ -32,18 +27,10 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-volttron-core = {path="../volttron-core", develop = true}
-volttron-lib-base-driver = {path="../volttron-lib-base-driver", develop = true}
-
-[tool.poetry.group.dev]
-optional = true
+#volttron-core = {path="../volttron-core", develop = true}
+#volttron-lib-base-driver = {path="../volttron-lib-base-driver", develop = true}
 
 [tool.poetry.group.dev.dependencies]
-volttron-testing = {path = "../volttron-testing", develop = true}
-volttron-lib-zmq = {path = "../volttron-lib-zmq", develop = true}
-volttron-lib-auth = {path = "../volttron-lib-auth", develop = true}
-volttron-platform-driver = {path="../volttron-platform-driver", develop = true}
-
 pytest = "^8.3.3"
 pytest-cov = "^3.0.0"
 mock = "^4.0.3"
@@ -53,10 +40,14 @@ toml = "^0.10.2"
 mypy = "^0.942"
 coverage = "^6.3.2"
 isort = "^5.10.1"
-
-[tool.poetry.dev-dependencies]
 Sphinx = "^4.5.0"
 sphinx-rtd-theme = "^1.0.0"
+
+#[tool.poetry.scripts]
+#volttron-lib-home-assistant-driver = "volttron.driver.interfaces.home_assistant.home_assistant:main"
+
+[tool.isort]
+profile = "black"
 
 [tool.yapf]
 based_on_style = "pep8"
@@ -71,3 +62,6 @@ ignore_patterns = [
     "dist/**",
     "docs/**"
 ]
+
+[tool.poetry.group.dev]
+optional = true
