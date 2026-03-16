@@ -35,7 +35,7 @@ Here is an example configuration file.
        "access_token": "Your Home Assistant Access Token",
        "port": "Your Port"
    },
-   "driver_type": "homeassistant",
+    "driver_type": "home_assistant",
    "registry_config": "config://light.example.json",
    "interval": 30,
    "timezone": "UTC"
@@ -102,7 +102,8 @@ The registry file is a json file. Each JSON object relates to a state or attribu
 
 .. code-block:: shell
 
-    pip install volttron-lib-home-assistant-driver
+    cd /path/to/volttron-lib-homeassistant-driver
+    pip install -e .
 
 5. Install a Fake Driver onto the Platform Driver:
 
@@ -125,7 +126,7 @@ The registry file is a json file. Each JSON object relates to a state or attribu
             "access_token": "Your Home Assistant Access Token",
             "port": "Your Port"
         },
-        "driver_type": "homeassistant",
+        "driver_type": "home_assistant",
         "registry_config": "config://light.example.json",
         "interval": 30,
         "timezone": "UTC"
@@ -135,7 +136,7 @@ The registry file is a json file. Each JSON object relates to a state or attribu
 
     Ensure your ``registry_config`` parameter in your device configuration file, links to the correct registry config name in the config store. For more details on how volttron platform driver agent works with volttron configuration store see, `Platform driver configuration <https://volttron.readthedocs.io/en/main/agent-framework/driver-framework/platform-driver/platform-driver.html#configuration-and-installation>`. Examples for lights and thermostats are provided below.
 
-    Device configuration file contains the connection details to your home assistant instance and ``driver_type`` as "homeassistant". This file can be named anything you want but in this example we are naming it ``light.example.config``.
+    Device configuration file contains the connection details to your home assistant instance and ``driver_type`` as ``home_assistant``. This file can be named anything you want but in this example we are naming it ``light.example.config``.
 
 8. Create a file named ``light.example.json`` and enter your information. (*like the config, this file can be named anything and is only named light.example.json for demonstrative purposes*)
 

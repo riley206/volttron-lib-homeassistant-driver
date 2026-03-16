@@ -116,9 +116,9 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
     REGISTER_CONFIG_CLASS = HAPointConfig
     INTERFACE_CONFIG_CLASS = HARemoteConfig
 
-    def __init__(self, config: RemoteConfig, core, vip, *args, **kwargs):
+    def __init__(self, config: RemoteConfig, *args, **kwargs):
         BasicRevert.__init__(self, **kwargs)
-        BaseInterface.__init__(self, config, core, vip, *args, **kwargs)
+        BaseInterface.__init__(self, config, *args, **kwargs)
 
         if not self.config.verify_ssl:
             import urllib3

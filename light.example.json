@@ -1,24 +1,13 @@
 [
     {
-        "Entity ID": "light.philips_hue_2_huelight_2",
+        "Entity ID": "sensor.example_temperature",
         "Entity Attribute": "state",
-        "Volttron Point Name": "light_state",
-        "Units": "On / Off",
-        "Units Details": "on/off",
+        "Volttron Point Name": "temperature_state",
+        "Units": "C",
+        "Units Details": "Celsius",
         "Writable": true,
         "Starting Value": true,
-        "Type": "boolean",
-        "Notes": "lights hallway"
-    },
-    {
-        "Entity ID": "light.philips_hue_light_1_huelight",
-        "Entity Attribute": "brightness",
-        "Volttron Point Name": "light_brightness",
-        "Units": "int",
-        "Units Details": "light level",
-        "Writable": true,
-        "Starting Value": 0,
-        "Type": "int",
-        "Notes": "brightness control, 0 - 255"
+        "Type": "float",
+        "Notes": "Example sensor point"
     }
- ]
+]

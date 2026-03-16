@@ -3,16 +3,15 @@ requires = ["poetry-core>=1.2.2"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "volttron-lib-home-assistant-driver"
+name = "volttron-lib-homeassistant-driver"
 version = "0.1.0"
 description = "A VOLTTRON driver that allows communication between VOLTTRON and Home Assistant"
 authors = ["VOLTTRON Team <volttron@pnnl.gov>"]
 license = "Apache License 2.0"
 readme = "README.md"
-repository = "https://github.com/eclipse-volttron/volttron-topic-watcher"
-homepage = "https://github.com/eclipse-volttron/volttron-topic-watcher"
+repository = "https://github.com/eclipse-volttron/volttron-lib-homeassistant-driver"
+homepage = "https://github.com/eclipse-volttron/volttron-lib-homeassistant-driver"
 keywords = []
-include = ["src/volttron", "config"]
 packages = [
     { include = "volttron", from = "src" }
 ]
@@ -27,8 +26,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
-#volttron-core = {path="../volttron-core", develop = true}
-#volttron-lib-base-driver = {path="../volttron-lib-base-driver", develop = true}
+volttron-lib-base-driver = ">=2.0.0rc0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"

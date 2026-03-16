@@ -28,7 +28,7 @@ Information on how to install of the VOLTTRON platform can be found [here](https
 If not already installed, install the VOLTTRON platform driver:
 
 ```shell
-pip install volttron-platform-driver
+vctl install volttron-platform-driver --vip-identity platform.driver --start
 ```
 
 Install the Home Assistant driver library:
@@ -38,34 +38,35 @@ Install the Home Assistant driver library:
 pip install volttron-lib-homeassistant-driver
 
 # Development installation
-pip install -e /path/to/volttron-lib-homeassistant-driver/
+cd /path/to/volttron-lib-homeassistant-driver
+pip install -e .
 ```
+
+The canonical `driver_type` is `home_assistant`.
 
 ## Configuration
 
-Using the Home Assistant driver requires adding device configuration and registry configuration files to the Platform Driver's configuration store.
+Using the Home Assistant driver requires adding a device config and a registry config to the Platform Driver config store.
 
-Create a directory named `config` and use change directory to enter it.
+This repository already includes matching examples:
 
-```shell
-mkdir config
-cd config
-```
+- `light.example.config`
+- `light.example.json`
 
 ### Device Configuration
 
-Create a file named `homeassistant.config` with the following content:
+Use `light.example.config` with the following content:
 
 ```json
 {
    "driver_config": {
-       "url": "http://[Your Home Assistant IP]:[Your Port]",
-       "access_token": "[Your Home Assistant Access Token]",
+       "url": "https://<HOME_ASSISTANT_HOST>:<PORT>",
+       "access_token": "<LONG_LIVED_ACCESS_TOKEN>",
        "verify_ssl": true,
-       "ssl_cert_path": null
+       "ssl_cert_path": "/path/to/fullchain.pem"
    },
    "driver_type": "home_assistant",
-   "registry_config": "config://homeassistant.json",
+   "registry_config": "config://light.example.json",
    "interval": 30,
    "timezone": "UTC"
 }
@@ -78,35 +79,24 @@ Configuration parameters:
 | `url` | Full URL to your Home Assistant instance including protocol and port |
 | `access_token` | Your long-lived Home Assistant access token |
 | `verify_ssl` | Set to `true` to enable SSL certificate verification or `false` to bypass it |
-| `ssl_cert_path` | Path to custom SSL certificate (optional, leave as `null` if not using) |
+| `ssl_cert_path` | Path to custom SSL certificate when `verify_ssl=true`. Set `null` if not using a custom cert. |
 
 ### Registry Configuration
 
-Create a file named `homeassistant.json` with your device information:
+Use `light.example.json` with your device information:
 
 ```json
 [
    {
-       "Entity ID": "light.example",
+       "Entity ID": "sensor.example_temperature",
        "Entity Attribute": "state",
-       "Volttron Point Name": "light_state",
-       "Units": "On / Off",
-       "Units Details": "on/off",
+       "Volttron Point Name": "temperature_state",
+       "Units": "C",
+       "Units Details": "Celsius",
        "Writable": true,
        "Starting Value": true,
-       "Type": "boolean",
-       "Notes": "lights hallway"
-   },
-   {
-       "Entity ID": "light.example",
-       "Entity Attribute": "brightness",
-       "Volttron Point Name": "light_brightness",
-       "Units": "int",
-       "Units Details": "light level",
-       "Writable": true,
-       "Starting Value": 0,
-       "Type": "int",
-       "Notes": "brightness control, 0 - 255"
+       "Type": "float",
+       "Notes": "Example sensor point"
    }
 ]
 ```
@@ -116,15 +106,29 @@ Create a file named `homeassistant.json` with your device information:
 Add configuration files to the platform driver configuration store:
 
 ```bash
-vctl config store platform.driver devices/home/bedroom homeassistant.config
-vctl config store platform.driver homeassistant.json homeassistant.json --raw
+vctl config store platform.driver devices/home/bedroom light.example.config --json
+vctl config store platform.driver light.example.json light.example.json --json
 ```
 
 Restart the platform driver:
 
 ```bash
-vctl restart platform.driver
+vctl restart 1
 ```
+
+## Verify Data
+
+Run the helper script to ensure the node is registered and points are readable:
+
+```bash
+./scripts/register_homeassistant_node.py --volttron-home /path/to/volttron_home
+```
+
+Expected output includes:
+
+- `add_node: True` or `add_node: False` (False means node already exists)
+- `scrape_all: {...}` with your point values
+- `get_point(<point_name>): <value>`
 
 ## Registry Configuration Format
 
