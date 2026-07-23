@@ -37,8 +37,22 @@ def test_create_register(ha_remote_config):
     assert register.entity_id == 'light.living_room'
     assert register.entity_attribute == 'state'
     assert register.volttron_point_name == 'Living Room Light'
-    assert register.reg_type == 'int'
+    assert register.reg_type is int
+    assert register.python_type is int
     assert register.value is None    # No value set initially
+
+
+def test_point_config_uses_documented_entity_attribute_key():
+    point_config = HAPointConfig(**{
+        'Entity ID': 'sensor.temperature',
+        'Entity Attribute': 'state',
+        'Starting Value': None,
+        'Type': 'float',
+        'Volttron Point Name': 'temperature',
+        'Writable': False,
+    })
+
+    assert point_config.entity_attribute == 'state'
 
 
 @patch('requests.get')
@@ -95,7 +109,7 @@ def test_set_point(mock_post, ha_remote_config):
     assert register.value == 1    # The register value should be updated
 
     # Verify that the post method was called with the correct URL and payload
-    mock_post.assert_called_once_with('http://localhost:8123//api/services/light/turn_on',
+    mock_post.assert_called_once_with('http://localhost:8123/api/services/light/turn_on',
                                       headers={
                                           'Authorization': 'Bearer test_token',
                                           'Content-Type': 'application/json',
@@ -119,9 +133,39 @@ def test_get_entity_data(mock_get, ha_remote_config):
 
     result = interface.get_entity_data('light.living_room')
 
+    mock_get.assert_called_once_with(
+        'http://localhost:8123/api/states/light.living_room',
+        headers={
+            'Authorization': 'Bearer test_token',
+            'Content-Type': 'application/json',
+        },
+        verify=True)
+
     assert result == {
         "state": "on",
         "attributes": {
             "brightness": 255
         }
     }    # Verify that the mocked response is returned.
+
+
+@patch('requests.get')
+def test_get_multiple_points_uses_full_topics(mock_get, ha_remote_config):
+    interface = HomeAssistantInterface(config=ha_remote_config, core=MagicMock(), vip=MagicMock())
+    topic = 'devices/example/light/temperature_state'
+    register = HomeAssistantRegister(read_only=True,
+                                     units='C',
+                                     reg_type=float,
+                                     entity_id='sensor.temperature',
+                                     entity_attribute='state',
+                                     volttron_point_name='temperature_state')
+    interface.get_register_by_name = MagicMock(return_value=register)
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"state": "-22.7", "attributes": {}}
+    mock_get.return_value = mock_response
+
+    results, errors = interface._get_multiple_points([topic])
+
+    assert results == {topic: -22.7}
+    assert errors == {}

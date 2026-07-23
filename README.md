@@ -93,8 +93,8 @@ Use `light.example.json` with your device information:
        "Volttron Point Name": "temperature_state",
        "Units": "C",
        "Units Details": "Celsius",
-       "Writable": true,
-       "Starting Value": true,
+       "Writable": false,
+       "Starting Value": null,
        "Type": "float",
        "Notes": "Example sensor point"
    }
@@ -113,7 +113,7 @@ vctl config store platform.driver light.example.json light.example.json --json
 Restart the platform driver:
 
 ```bash
-vctl restart 1
+vctl restart platform.driver
 ```
 
 ## Verify Data
@@ -135,10 +135,10 @@ Expected output includes:
 Each entry in the registry file should include:
 
 - `Entity ID`: Full entity ID from Home Assistant (e.g., `light.kitchen`)
-- `Entity Attribute`: Attribute to read/write (e.g., `state`, `brightness`)
+- `Entity Attribute`: Home Assistant state or attribute to read/write (e.g., `state`, `brightness`)
 - `Volttron Point Name`: Unique name in VOLTTRON for this point
 - `Type`: Data type (`string`, `int`, `float`, `bool`)
-- `Writable`: Whether point can be controlled (`true`/`false`)
+- `Writable`: Whether point can be controlled (`true`/`false`). Set this to `false` for read-only entities such as sensors.
 
 > **Note:** Attributes can be found in the Developer Tools section of Home Assistant. Ensure `Volttron Point Name` is unique within each registry file.
 
@@ -151,9 +151,6 @@ The driver supports reading from all Home Assistant entities and writing to:
 | Lights | `state` (on/off), `brightness` (0-255) |
 | Thermostats | `state` (0=Off, 2=Heat, 3=Cool, 4=Auto), `temperature` |
 | Input Booleans | `state` (on/off) |
-| Fans | `state` (on/off), `speed` |
-| Covers | `state` (open/closed), `position` (0-100) |
-| Media Players | `state` (on/off), `play_pause` |
 
 ## Advanced Features
 

@@ -3,6 +3,9 @@ pip-wheel-metadata/
 site/
 .venv/
 
+# TLS certificates
+*.pem
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

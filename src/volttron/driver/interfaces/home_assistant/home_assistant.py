@@ -37,7 +37,7 @@ type_mapping = {"string": str, "int": int, "integer": int, "float": float, "bool
 
 class HAPointConfig(PointConfig):
     entity_id: str = Field(alias='Entity ID')
-    entity_attribute: str = Field(default='state', alias='Entity Point')
+    entity_attribute: str = Field(default='state', alias='Entity Attribute')
     starting_value: Any = Field(alias='Starting Value')
     type: str = Field(alias='Type')
 
@@ -105,6 +105,7 @@ class HomeAssistantRegister(BaseRegister):
     def __init__(self, read_only, units, reg_type, entity_id, entity_attribute, volttron_point_name):
         super(HomeAssistantRegister, self).__init__("byte", read_only, volttron_point_name, units, description='')
         self.reg_type = type_mapping.get(reg_type, str)
+        self.python_type = self.reg_type
         self.entity_id = entity_id
         self.value = None
         self.entity_attribute = entity_attribute
@@ -249,7 +250,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             "Content-Type": "application/json",
         }
         # the /states grabs current state AND attributes of a specific entity
-        url = f"{self.config.url}/api/states/{entity_id}"
+        url = self._api_url(f"api/states/{entity_id}")
         response = requests.get(url, headers=headers, verify=self.config.verify_option)
         if response.status_code == 200:
             return response.json()    # return the json attributes from entity
@@ -274,16 +275,16 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         # Giving thermostat states an equivalent number.
                         if state == "off":
                             register.value = 0
-                            result[register.volttron_point_name] = 0
+                            result[topic] = 0
                         elif state == "heat":
                             register.value = 2
-                            result[register.volttron_point_name] = 2
+                            result[topic] = 2
                         elif state == "cool":
                             register.value = 3
-                            result[register.volttron_point_name] = 3
+                            result[topic] = 3
                         elif state == "auto":
                             register.value = 4
-                            result[register.volttron_point_name] = 4
+                            result[topic] = 4
                         else:
                             error_msg = f"State {state} from {entity_id} is not yet supported"
                             _log.error(error_msg)
@@ -292,7 +293,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
-                        result[register.volttron_point_name] = attribute
+                        result[topic] = attribute
                 # handling light states
                 elif "light." in entity_id or "input_boolean." in entity_id:    # Checks for lights or input booleans
                     if entity_attribute == "state":
@@ -301,29 +302,30 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         # Converting light states to numbers.
                         if state == "on":
                             register.value = 1
-                            result[register.volttron_point_name] = 1
+                            result[topic] = 1
                             _log.debug(f"Set light state to 1 (on) for {entity_id}")
                         elif state == "off":
                             register.value = 0
-                            result[register.volttron_point_name] = 0
+                            result[topic] = 0
                             _log.debug(f"Set light state to 0 (off) for {entity_id}")
                         else:
                             _log.error(f"Unknown state {state} for {entity_id}")
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
-                        result[register.volttron_point_name] = attribute
+                        result[topic] = attribute
                 else:    # handling all devices that are not thermostats or light states
                     if entity_attribute == "state":
-
                         state = entity_data.get("state", None)
+                        if register.reg_type in (int, float) and state is not None:
+                            state = register.reg_type(state)
                         register.value = state
-                        result[register.volttron_point_name] = state
+                        result[topic] = state
                     # Assigning attributes
                     else:
                         attribute = entity_data.get("attributes", {}).get(f"{entity_attribute}", 0)
                         register.value = attribute
-                        result[register.volttron_point_name] = attribute
+                        result[topic] = attribute
             except Exception as e:
                 _log.error(
                     f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}")
@@ -331,7 +333,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         return result, errors
 
     def turn_off_lights(self, entity_id: str) -> None:
-        url = f"{self.config.url}/api/services/light/turn_off"
+        url = self._api_url("api/services/light/turn_off")
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "Content-Type": "application/json",
@@ -342,7 +344,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         self._post_method(url, headers, payload, f"turn off {entity_id}")
 
     def turn_on_lights(self, entity_id: str) -> None:
-        url = f"{self.config.url}/api/services/light/turn_on"
+        url = self._api_url("api/services/light/turn_on")
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "Content-Type": "application/json",
@@ -357,7 +359,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             _log.error(f"{entity_id} is not a valid thermostat entity ID.")
             return
         # Build header
-        url = f"{self.config.url}/api/services/climate/set_hvac_mode"
+        url = self._api_url("api/services/climate/set_hvac_mode")
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "content-type": "application/json",
@@ -376,7 +378,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
             _log.error(f"{register.entity_id} is not a valid thermostat entity ID.")
             return
 
-        url = f"{self.config.url}/api/services/climate/set_temperature"
+        url = self._api_url("api/services/climate/set_temperature")
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "content-type": "application/json",
@@ -397,7 +399,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         self._post_method(url, headers, data, f"set temperature of {register.entity_id} to {register.value}")
 
     def change_brightness(self, entity_id: str, value: int) -> None:
-        url = f"{self.config.url}/api/services/light/turn_on"
+        url = self._api_url("api/services/light/turn_on")
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "Content-Type": "application/json",
@@ -412,7 +414,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
     def set_input_boolean(self, entity_id: str, state: str) -> None:
         service = 'turn_on' if state == 'on' else 'turn_off'
-        url = f"{self.config.url}/api/services/input_boolean/{service}"
+        url = self._api_url(f"api/services/input_boolean/{service}")
         headers = {
             "Authorization": f"Bearer {self.config.access_token}",
             "Content-Type": "application/json",
@@ -443,6 +445,10 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         if err:
             _log.error(err)
             raise Exception(err)
+
+    def _api_url(self, path: str) -> str:
+        """Build an API endpoint without duplicating the base URL slash."""
+        return f"{str(self.config.url).rstrip('/')}/{path.lstrip('/')}"
 
     @classmethod
     def unique_remote_id(cls, config_name: str, config: HARemoteConfig) -> tuple:

@@ -5,8 +5,8 @@
         "Volttron Point Name": "temperature_state",
         "Units": "C",
         "Units Details": "Celsius",
-        "Writable": true,
-        "Starting Value": true,
+        "Writable": false,
+        "Starting Value": null,
         "Type": "float",
         "Notes": "Example sensor point"
     }
