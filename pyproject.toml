@@ -1,0 +1,65 @@
+[build-system]
+requires = ["poetry-core>=1.2.2"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "volttron-lib-homeassistant-driver"
+version = "0.1.0"
+description = "A VOLTTRON driver that allows communication between VOLTTRON and Home Assistant"
+authors = ["VOLTTRON Team <volttron@pnnl.gov>"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/eclipse-volttron/volttron-lib-homeassistant-driver"
+homepage = "https://github.com/eclipse-volttron/volttron-lib-homeassistant-driver"
+keywords = []
+packages = [
+    { include = "volttron", from = "src" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: Apache Software License"
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+volttron-lib-base-driver = ">=2.0.0rc0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-cov = "^3.0.0"
+mock = "^4.0.3"
+pre-commit = "^2.17.0"
+yapf = "^0.32.0"
+toml = "^0.10.2"
+mypy = "^0.942"
+coverage = "^6.3.2"
+isort = "^5.10.1"
+Sphinx = "^4.5.0"
+sphinx-rtd-theme = "^1.0.0"
+
+#[tool.poetry.scripts]
+#volttron-lib-home-assistant-driver = "volttron.driver.interfaces.home_assistant.home_assistant:main"
+
+[tool.isort]
+profile = "black"
+
+[tool.yapf]
+based_on_style = "pep8"
+spaces_before_comment = 4
+column_limit = 120
+split_before_logical_operator = true
+
+[tool.yapfignore]
+ignore_patterns = [
+    ".venv/**",
+    ".pytest_cache/**",
+    "dist/**",
+    "docs/**"
+]
+
+[tool.poetry.group.dev]
+optional = true

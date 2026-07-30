@@ -1,0 +1,13 @@
+[
+    {
+        "Entity ID": "sensor.example_temperature",
+        "Entity Attribute": "state",
+        "Volttron Point Name": "temperature_state",
+        "Units": "C",
+        "Units Details": "Celsius",
+        "Writable": false,
+        "Starting Value": null,
+        "Type": "float",
+        "Notes": "Example sensor point"
+    }
+]
