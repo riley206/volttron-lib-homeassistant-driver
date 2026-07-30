@@ -104,7 +104,10 @@ class HomeAssistantRegister(BaseRegister):
 
     def __init__(self, read_only, units, reg_type, entity_id, entity_attribute, volttron_point_name):
         super(HomeAssistantRegister, self).__init__("byte", read_only, volttron_point_name, units, description='')
-        self.reg_type = type_mapping.get(reg_type, str)
+        if isinstance(reg_type, str):
+            self.reg_type = type_mapping.get(reg_type, str)
+        else:
+            self.reg_type = reg_type if callable(reg_type) else str
         self.python_type = self.reg_type
         self.entity_id = entity_id
         self.value = None
@@ -116,10 +119,11 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
 
     REGISTER_CONFIG_CLASS = HAPointConfig
     INTERFACE_CONFIG_CLASS = HARemoteConfig
+    default_config = {}
 
-    def __init__(self, config: RemoteConfig, *args, **kwargs):
+    def __init__(self, config: RemoteConfig, driver_agent=None, *args, **kwargs):
         BasicRevert.__init__(self, **kwargs)
-        BaseInterface.__init__(self, config, *args, **kwargs)
+        BaseInterface.__init__(self, config, driver_agent, *args, **kwargs)
 
         if not self.config.verify_ssl:
             import urllib3
@@ -327,8 +331,9 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
                         register.value = attribute
                         result[topic] = attribute
             except Exception as e:
-                _log.error(
-                    f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}")
+                error_msg = f"An unexpected error occurred for entity_id: {entity_id}: {e}, using {self.config.verify_option}"
+                _log.error(error_msg)
+                errors[topic] = str(e)
 
         return result, errors
 
@@ -421,14 +426,7 @@ class HomeAssistantInterface(BasicRevert, BaseInterface):
         }
 
         payload = {"entity_id": entity_id}
-
-        response = requests.post(url, headers=headers, json=payload, verify=self.config.verify_option)
-
-        # Optionally check for a successful response
-        if response.status_code == 200:
-            print(f"Successfully set {entity_id} to {state}")
-        else:
-            print(f"Failed to set {entity_id} to {state}: {response.text}")
+        self._post_method(url, headers, payload, f"set input_boolean {entity_id} to {state}")
 
     def _post_method(self, url: str, headers: dict, data: dict, operation_description: str) -> None:
         err = None
