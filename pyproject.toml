@@ -15,6 +15,10 @@ keywords = []
 packages = [
     { include = "volttron", from = "src" }
 ]
+include = [
+    { path = "light.example.config", format = ["sdist", "wheel"] },
+    { path = "light.example.json", format = ["sdist", "wheel"] }
+]
 classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Intended Audience :: Science/Research",
